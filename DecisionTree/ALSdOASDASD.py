@@ -8,8 +8,8 @@ This code was written entirely by Kidus Yohannes
 """
 import math
 import re
-#import pdb
-#from pprint import pprint
+import pdb
+from pprint import pprint
 
 
 # Node used for representing a decision tree
@@ -17,37 +17,35 @@ class Node:
     # A node will either be a decision split (attribute) or a leaf (label)
     # The childs represent the connected nodes. Each decision (or attribute) value maps to another node,
     # which will either be another decision split or a leaf
-    def __init__(self, attribute = None, label = None, childs = None):
-        # This structure is necessary to prevent a previous bug where an empty constructor
-        # wouldn't actually instaniate default values.
-        if attribute is None:
-            self.attribute = ""
-        else:
-            self.attribute = attribute
+    def __init__(self, attribute = "", label = "", childs = {}):
+        self.attribute = attribute
+        self.label = label
+        self.childs = childs
 
-        if label is None:
-            self.label = ""
-        else:
-            self.label = label
-
-        if childs is None:
-            self.childs = {}
-        else:
-            self.childs = childs
-
-    # Overriding string method, for printing out the node tree structure
+    # Overriding string method, for printing out the node
     def __str__(self, level=0):
-        ret = ""
+        ret = "\t" * level
         if self.attribute != "":
-            ret += "[" + repr(self.attribute) + "]\n"
+            ret += self.attribute + "\n"
+            return ret
         else:
-            ret += "= " + repr(self.label) + "\n"
-
+            ret += self.label + "\n"
+        
         for key, value in self.childs.items():
-            ret += "\t"*level+repr(key)+" --> "
-            ret += value.__str__(level+1)
+            ret += "\t"
+            ret += key + " - "
+            if level == 1
+            ret += value.__str__(level + 1)
+            
         return ret
-    
+
+    #def __str__(self, level=0):
+    #    str = "\t"*level+repr(self.attribute)+"\n"
+    #    for child in self.childs:
+    #        print(child)
+    #        #str += child.__str__(level+1)
+    #    return str
+
 
 # From a given data set, formats and returns it as a list of dictionaries
 def read_data(CSV_file, attributes):
@@ -100,8 +98,6 @@ class Dataset:
     def calc_entropy(self, data):
         # First calculate the proportion for each label value
         data_size = len(data)
-        if data_size == 0:
-            return 0
         label_proportions = []
         for l in self.labels:
             label_proportions.append(sum(x["label"] == l for x in data) / data_size)
@@ -115,17 +111,17 @@ class Dataset:
         return entropy;
 
     # Calculates the best attribute by choosing the one with the most information gain 
-    def calc_best_attribute(self, data, attributes):
+    def calc_best_attribute(self, attributes):
         # First calculate the current entropy
-        current_entropy = self.calc_entropy(data)
+        current_entropy = self.calc_entropy(self.data)
     
         # Now for each attribute, we need to calculate the expected entropy and information gain
-        data_size = len(data)
+        data_size = len(self.data)
         attribute_info_gain = {}
         for a in attributes:
             a_expected_entropy = []
             for v in self.attribute_values[a]:
-                data_a_v = list(filter(lambda x: x[a] == v, data))
+                data_a_v = list(filter(lambda x: x[a] == v, self.data))
                 a_v_proportion = len(data_a_v) / data_size
                 a_expected_entropy.append(self.calc_entropy(data_a_v) * a_v_proportion)
             a_expected_entropy = sum(a_expected_entropy)
@@ -143,7 +139,7 @@ class Dataset:
         for d in data:
             data_labels.append(d["label"])
         if data_labels.count(data_labels[0]) == len(data_labels):
-            return Node("", data_labels[0], {})
+            return Node("", data_labels[0], {});
 
         # If attributes is empty, return a leaf node with the most common label
         data_labels_count = {}
@@ -156,11 +152,11 @@ class Dataset:
 
         # Otherwise
         # Create a root node
-        root = Node()
+        node = Node()
         
         # Get best attribute to split on
-        best_attribute = self.calc_best_attribute(data, attributes)
-        root.attribute = best_attribute
+        best_attribute = self.calc_best_attribute(attributes)
+        node.attribute = best_attribute
         
         # For each possible value for the best attribute
         for v in self.attribute_values[best_attribute]:
@@ -183,11 +179,11 @@ class Dataset:
             else:
                 attributes_ = attributes.copy()
                 attributes_.remove(best_attribute)
-                root.childs[v] = self.id3(data_ba_v, attributes_)
                 #pdb.set_trace()
+                node.childs[v] = self.id3(data_ba_v, attributes_)
         
         # Finally return root node
-        return root
+        return node;   
 
 
 def main():
@@ -195,12 +191,11 @@ def main():
     train_file = "car\\train.csv"
     dataset = Dataset(data_desc_file, train_file)
     
-    # Use recursive ID3 algorithm to create a decision tree for the dataset
-    decision_tree = dataset.id3(dataset.data, dataset.attributes)
-    
-    # Print the resulting tree
-    print(decision_tree.__str__())
-    #pprint(vars(decision_tree))
+    # Use recursive ID3 algorithm to create decision tree for the data
+    root = dataset.id3(dataset.data, dataset.attributes)
+
+    print(root)
+    #pprint(vars(root))
 
 if __name__ == "__main__":
     main()
