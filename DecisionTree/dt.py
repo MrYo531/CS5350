@@ -275,7 +275,7 @@ def main():
     decision_tree = dataset.id3(dataset.data, dataset.attributes)
     
     # Print the resulting tree
-    #print(decision_tree)
+    print(decision_tree)
     #pprint(vars(decision_tree))
 
     # Now test the decision tree on the test file
