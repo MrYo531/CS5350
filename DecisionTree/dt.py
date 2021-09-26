@@ -9,7 +9,8 @@ This code was written entirely by Kidus Yohannes
 import sys
 import math
 import re
-import pdb
+import os
+#import pdb
 #from pprint import pprint
 
 
@@ -254,8 +255,8 @@ def main():
     method_of_purity = "entropy" if len(sys.argv) == 1 else sys.argv[1]
     max_depth = sys.maxsize if len(sys.argv) <= 2 else int(sys.argv[2])
 
-    data_desc_file = "car\\data-desc.txt"
-    train_file = "car\\train.csv"
+    data_desc_file = os.path.join("car", "data-desc.txt")
+    train_file = os.path.join("car", "train.csv")
     dataset = Dataset(data_desc_file, train_file, method_of_purity, max_depth)
     
     # Use recursive ID3 algorithm to create a decision tree for the dataset
