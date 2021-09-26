@@ -9,7 +9,7 @@ This code was written entirely by Kidus Yohannes
 import sys
 import math
 import re
-#import pdb
+import pdb
 #from pprint import pprint
 
 
@@ -37,7 +37,7 @@ class Node:
             self.childs = childs
 
     # Overriding string method, for printing out the node tree structure
-    def __str__(self, level=0):
+    def __str__(self, depth=0):
         ret = ""
         if self.attribute != "":
             ret += "[" + repr(self.attribute) + "]\n"
@@ -45,8 +45,8 @@ class Node:
             ret += "= " + repr(self.label) + "\n"
 
         for key, value in self.childs.items():
-            ret += "\t" * level + repr(key)+ " --> "
-            ret += value.__str__(level+1)
+            ret += "\t" * depth + repr(key)+ " --> "
+            ret += value.__str__(depth+1)
         return ret
     
 
@@ -75,10 +75,11 @@ class Dataset:
     labels = [] 
     attributes = [] 
     attribute_values = {}
-    method_of_purity = "entropy"
+    method_of_purity = ""
+    max_depth = sys.maxsize
 
     # Initialize using the description and training files
-    def __init__(self, data_desc_file, train_file, method_of_purity):
+    def __init__(self, data_desc_file, train_file, method_of_purity, max_depth):
         # Get the labels, attributes, and their values from the data-desc file.
         lines = []
         with open(data_desc_file, 'r') as f:
@@ -96,10 +97,14 @@ class Dataset:
                     break
 
         # Set method_of_purity to entropy (default), me, or gi
+        self.method_of_purity = "entropy"
         if method_of_purity == "me":
             self.method_of_purity = "me"
         elif method_of_purity == "gi":
             self.method_of_purity = "gi"
+
+        # Set max_depth
+        self.max_depth = max_depth
 
         # Get the training data
         self.data = read_data(train_file, self.attributes)
@@ -188,7 +193,7 @@ class Dataset:
 
 
     # ID3 algorithm, recursively calls itself
-    def id3(self, data, attributes):
+    def id3(self, data, attributes, depth = 0):
         # If all examples have the same label, return a leaf node with that label
         data_labels = []
         for d in data:
@@ -213,6 +218,10 @@ class Dataset:
         best_attribute = self.calc_best_attribute(data, attributes)
         root.attribute = best_attribute
         
+        # Stop building the tree when we reach the max_depth
+        if depth == self.max_depth:
+            return root
+
         # For each possible value for the best attribute
         for v in self.attribute_values[best_attribute]:
             # Get the subset of examples where the best attribute equals the value
@@ -234,7 +243,7 @@ class Dataset:
             else:
                 attributes_ = attributes.copy()
                 attributes_.remove(best_attribute)
-                root.childs[v] = self.id3(data_ba_v, attributes_)
+                root.childs[v] = self.id3(data_ba_v, attributes_, depth + 1)
                 #pdb.set_trace()
         
         # Finally return root node
@@ -243,10 +252,11 @@ class Dataset:
 def main():
     # Read the chosen method for purity (entropy, me, or gi)
     method_of_purity = "entropy" if len(sys.argv) == 1 else sys.argv[1]
-    
+    max_depth = sys.maxsize if len(sys.argv) <= 2 else int(sys.argv[2])
+
     data_desc_file = "car\\data-desc.txt"
     train_file = "car\\train.csv"
-    dataset = Dataset(data_desc_file, train_file, method_of_purity)
+    dataset = Dataset(data_desc_file, train_file, method_of_purity, max_depth)
     
     # Use recursive ID3 algorithm to create a decision tree for the dataset
     decision_tree = dataset.id3(dataset.data, dataset.attributes)
