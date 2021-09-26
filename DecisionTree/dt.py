@@ -6,6 +6,7 @@ September 24, 2021
 
 This code was written entirely by Kidus Yohannes
 """
+import sys
 import math
 import re
 #import pdb
@@ -74,9 +75,10 @@ class Dataset:
     labels = [] 
     attributes = [] 
     attribute_values = {}
+    method_of_purity = "entropy"
 
     # Initialize using the description and training files
-    def __init__(self, data_desc_file, train_file):
+    def __init__(self, data_desc_file, train_file, method_of_purity):
         # Get the labels, attributes, and their values from the data-desc file.
         lines = []
         with open(data_desc_file, 'r') as f:
@@ -92,6 +94,12 @@ class Dataset:
                     values = re.split(',|:|\.', l.strip().replace(" ", ""))[1:-1]
                     self.attribute_values[a] = values
                     break
+
+        # Set method_of_purity to entropy (default), me, or gi
+        if method_of_purity == "me":
+            self.method_of_purity = "me"
+        elif method_of_purity == "gi":
+            self.method_of_purity = "gi"
 
         # Get the training data
         self.data = read_data(train_file, self.attributes)
@@ -112,7 +120,7 @@ class Dataset:
             if p != 0:
                 entropy += -p * math.log(p, 2)
 
-        return entropy;
+        return entropy
 
     # Calculates the majority error for a given data set
     def calc_me(self, data):
@@ -126,7 +134,7 @@ class Dataset:
         
         # Choose the smallest proportion error
         me = min(label_proportions)
-        return me;
+        return me
 
     # Calculates the gini index for a given data set
     def calc_gi(self, data):
@@ -143,13 +151,24 @@ class Dataset:
         for p in label_proportions:
             gi += p**2
 
-        return 1 - gi;
+        return 1 - gi
+
+    # Chooses which purity equation to use based on the string given
+    def calc_purity(self, data):
+        purity = 0
+        if self.method_of_purity == "entropy":
+            purity = self.calc_entropy(data)
+        elif self.method_of_purity == "me":
+            purity = self.calc_me(data)
+        elif self.method_of_purity == "gi":
+            purity = self.calc_gi(data)
+        return purity
+
 
     # Calculates the best attribute by choosing the one with the most information gain 
     def calc_best_attribute(self, data, attributes):
         # First calculate the current entropy
-        #current_entropy = self.calc_entropy(data)
-        current_entropy = self.calc_gi(data)
+        current_entropy = self.calc_purity(data)
 
         # Now for each attribute, we need to calculate the expected entropy and information gain
         data_size = len(data)
@@ -159,8 +178,7 @@ class Dataset:
             for v in self.attribute_values[a]:
                 data_a_v = list(filter(lambda x: x[a] == v, data))
                 a_v_proportion = len(data_a_v) / data_size
-                #a_expected_entropy.append(self.calc_entropy(data_a_v) * a_v_proportion)
-                a_expected_entropy.append(self.calc_gi(data_a_v) * a_v_proportion)
+                a_expected_entropy.append(self.calc_purity(data_a_v) * a_v_proportion)
             a_expected_entropy = sum(a_expected_entropy)
             attribute_info_gain[a] = current_entropy - a_expected_entropy
     
@@ -222,11 +240,13 @@ class Dataset:
         # Finally return root node
         return root
 
-
 def main():
+    # Read the chosen method for purity (entropy, me, or gi)
+    method_of_purity = "entropy" if len(sys.argv) == 1 else sys.argv[1]
+    
     data_desc_file = "car\\data-desc.txt"
     train_file = "car\\train.csv"
-    dataset = Dataset(data_desc_file, train_file)
+    dataset = Dataset(data_desc_file, train_file, method_of_purity)
     
     # Use recursive ID3 algorithm to create a decision tree for the dataset
     decision_tree = dataset.id3(dataset.data, dataset.attributes)
