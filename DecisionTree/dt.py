@@ -77,7 +77,7 @@ class Dataset:
     attributes = [] 
     attribute_values = {}
     method_of_purity = ""
-    max_depth = sys.maxsize
+    max_depth = 0
 
     # Initialize using the description and training files
     def __init__(self, data_desc_file, train_file, method_of_purity, max_depth):
@@ -134,6 +134,7 @@ class Dataset:
         data_size = len(data)
         if data_size == 0:
             return 0
+
         label_proportions = []
         for l in self.labels:
             label_proportions.append(sum(x["label"] == l for x in data) / data_size)
@@ -215,13 +216,22 @@ class Dataset:
         # Create a root node
         root = Node()
         
+        # Stop building the tree when we reach the max_depth
+        if depth == self.max_depth:
+            # Just return the most common label
+            data_labels_count = {}
+            for l in self.labels:
+                data_labels_count[l] = data_labels.count(l)
+        
+            most_common_label = max(data_labels_count, key=data_labels_count.get)
+            root.label = most_common_label
+            return root
+
         # Get best attribute to split on
         best_attribute = self.calc_best_attribute(data, attributes)
         root.attribute = best_attribute
         
-        # Stop building the tree when we reach the max_depth
-        if depth == self.max_depth:
-            return root
+
 
         # For each possible value for the best attribute
         for v in self.attribute_values[best_attribute]:
@@ -254,17 +264,45 @@ def main():
     # Read the chosen method for purity (entropy, me, or gi)
     method_of_purity = "entropy" if len(sys.argv) == 1 else sys.argv[1]
     max_depth = sys.maxsize if len(sys.argv) <= 2 else int(sys.argv[2])
-
+    
+    # Set up the file names and dataset variable
     data_desc_file = os.path.join("car", "data-desc.txt")
     train_file = os.path.join("car", "train.csv")
+    test_file = os.path.join("car", "test.csv")
     dataset = Dataset(data_desc_file, train_file, method_of_purity, max_depth)
     
     # Use recursive ID3 algorithm to create a decision tree for the dataset
     decision_tree = dataset.id3(dataset.data, dataset.attributes)
     
     # Print the resulting tree
-    print(decision_tree)
+    #print(decision_tree)
     #pprint(vars(decision_tree))
+
+    # Now test the decision tree on the test file
+    # Loop through each example in the test data and keep track of the errors
+    test_data = read_data(test_file, dataset.attributes)
+    prediction_errors = 0
+    for d in test_data: 
+        # Go through our decision tree and find the label prediction
+        label_prediction = ""
+        current_node = decision_tree
+        while True:
+            decision = current_node.attribute
+            if decision == "":
+                label_prediction = current_node.label
+                break
+            decision_value = d[decision]
+            current_node = current_node.childs[decision_value]
+        
+        # Keep track of incorrect predictions
+        if d["label"] != label_prediction:
+            prediction_errors += 1
+    error_percentage = prediction_errors / len(test_data)
+
+    # Print results
+    print("Purity: " + method_of_purity + "\t Max Depth: " + str(max_depth))
+    print("Error percentage: " + str(error_percentage))
+
 
 if __name__ == "__main__":
     main()
