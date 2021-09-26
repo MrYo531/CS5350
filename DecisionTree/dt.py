@@ -44,7 +44,7 @@ class Node:
             ret += "= " + repr(self.label) + "\n"
 
         for key, value in self.childs.items():
-            ret += "\t"*level+repr(key)+" --> "
+            ret += "\t" * level + repr(key)+ " --> "
             ret += value.__str__(level+1)
         return ret
     
@@ -114,11 +114,43 @@ class Dataset:
 
         return entropy;
 
+    # Calculates the majority error for a given data set
+    def calc_me(self, data):
+        # First calculate the proportion for each label value
+        data_size = len(data)
+        if data_size == 0:
+            return 0
+        label_proportions = []
+        for l in self.labels:
+            label_proportions.append(sum(x["label"] == l for x in data) / data_size)
+        
+        # Choose the smallest proportion error
+        me = min(label_proportions)
+        return me;
+
+    # Calculates the gini index for a given data set
+    def calc_gi(self, data):
+        # First calculate the proportion for each label value
+        data_size = len(data)
+        if data_size == 0:
+            return 0
+        label_proportions = []
+        for l in self.labels:
+            label_proportions.append(sum(x["label"] == l for x in data) / data_size)
+        
+        # Then sum the proportions squared, minus 1 (exact formula: 1 - sum (p^2))
+        gi = 0
+        for p in label_proportions:
+            gi += p**2
+
+        return 1 - gi;
+
     # Calculates the best attribute by choosing the one with the most information gain 
     def calc_best_attribute(self, data, attributes):
         # First calculate the current entropy
-        current_entropy = self.calc_entropy(data)
-    
+        #current_entropy = self.calc_entropy(data)
+        current_entropy = self.calc_gi(data)
+
         # Now for each attribute, we need to calculate the expected entropy and information gain
         data_size = len(data)
         attribute_info_gain = {}
@@ -127,7 +159,8 @@ class Dataset:
             for v in self.attribute_values[a]:
                 data_a_v = list(filter(lambda x: x[a] == v, data))
                 a_v_proportion = len(data_a_v) / data_size
-                a_expected_entropy.append(self.calc_entropy(data_a_v) * a_v_proportion)
+                #a_expected_entropy.append(self.calc_entropy(data_a_v) * a_v_proportion)
+                a_expected_entropy.append(self.calc_gi(data_a_v) * a_v_proportion)
             a_expected_entropy = sum(a_expected_entropy)
             attribute_info_gain[a] = current_entropy - a_expected_entropy
     
@@ -199,7 +232,7 @@ def main():
     decision_tree = dataset.id3(dataset.data, dataset.attributes)
     
     # Print the resulting tree
-    print(decision_tree.__str__())
+    print(decision_tree)
     #pprint(vars(decision_tree))
 
 if __name__ == "__main__":
