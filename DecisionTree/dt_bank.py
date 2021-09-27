@@ -123,6 +123,23 @@ class Dataset:
         # Get the training data
         self.data = read_data(train_file, self.attributes)
 
+        # Complete missing "unknown" value with most common value
+        # First find most common values for each attribute
+        most_common_values = {}
+        for a in self.attributes:
+            value_counts = {}
+            for v in self.attribute_values[a]:
+                value_counts[v] = len(list(filter(lambda x: x[a] == v, self.data)))
+            value_counts.pop("unknown", None) # Removes unknown so it isn't the most common value
+            most_common_values[a] = max(value_counts)
+
+        # Then check each data example and replace any unknowns
+        for d in self.data:
+            for a in self.attributes:
+                if d[a] == "unknown":
+                    d[a] = most_common_values[a]
+            
+
     # Calculates the entropy for a given data set
     def calc_entropy(self, data):
         # First calculate the proportion for each label value
