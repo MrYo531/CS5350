@@ -11,7 +11,7 @@ import math
 import statistics
 import re
 import os
-import pdb # used for debuging
+import pdb # used for debugging
 
 
 # Node used for representing a decision tree
@@ -204,6 +204,7 @@ class Dataset:
 
     # Calculates the best attribute by choosing the one with the most information gain 
     def calc_best_attribute(self, data, attributes):
+        pdb.set_trace()
         # First calculate the current entropy
         current_purity = self.calc_purity(data)
 
