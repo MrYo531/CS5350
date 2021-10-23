@@ -8,6 +8,7 @@ This code was written entirely by Kidus Yohannes
 """
 import sys
 import math
+import random
 import statistics
 import re
 import os
@@ -79,11 +80,12 @@ class Dataset:
     weights = []
     attribute_values = {}
     method_of_purity = ""
+    ensemble_method = ""
     max_depth = 0
     t = 0 # forest size
 
     # Initialize using the description and training files
-    def __init__(self, data_desc_file, train_file, method_of_purity, max_depth):
+    def __init__(self, data_desc_file, train_file, method_of_purity, max_depth, ensemble_method):
         # Get the labels, attributes, and their values from the data-desc file.
         #lines = []
         #with open(data_desc_file, 'r') as f:
@@ -123,6 +125,12 @@ class Dataset:
         elif method_of_purity == "ada":
             self.method_of_purity = "gi"
             self.t = max_depth
+
+            self.ensemble_method = "boost"
+            if ensemble_method == "bag":
+                self.ensemble_method = "bag"
+            elif ensemble_method == "random":
+                self.ensemble_method = "random"
 
         # Set max_depth
         self.max_depth = max_depth if (method_of_purity != "ada") else 1
@@ -447,8 +455,18 @@ class Dataset:
         # Create a forest of stumps
         forest = []
         for _ in range(self.t):
+            data = []
+            # If bagging, choose random data samples
+            m = 1000
+            if self.ensemble_method == "bag":
+                for _ in range(m):
+                    random_i = random.randrange(len(self.data))
+                    data.append(self.data[random_i])
+            else:
+                data = self.data
+
             # Create stump
-            stump = self.id3(self.data, self.attributes)
+            stump = self.id3(data, self.attributes)
 
             # Calculate error and new weight
             stump_error = self.stump_error(stump)
@@ -509,12 +527,13 @@ def main():
     # Read the chosen method for purity (entropy, me, or gi)
     method_of_purity = "entropy" if len(sys.argv) == 1 else sys.argv[1]
     max_depth = sys.maxsize if len(sys.argv) <= 2 else int(sys.argv[2])
+    ensemble_method = "boost" if len(sys.argv) <= 3 else sys.argv[3]
 
     # Set up the file names and dataset variable
     data_desc_file = os.path.join("bank", "data-desc.txt")
     train_file = os.path.join("bank", "train.csv")
     test_file = os.path.join("bank", "test.csv")
-    dataset = Dataset(data_desc_file, train_file, method_of_purity, max_depth)
+    dataset = Dataset(data_desc_file, train_file, method_of_purity, max_depth, ensemble_method)
     
     # Use recursive ID3 algorithm to create a decision tree for the dataset
     if (method_of_purity != "ada"):
@@ -585,7 +604,7 @@ def main():
         test_error_percentage = prediction_errors / len(test_data)
         
         # Print results
-        print("Adaboost | " + "Forest Size: " + str(dataset.t))
+        print("Adaboost | " + dataset.ensemble_method + "\t Forest Size: " + str(dataset.t))
         print("Training error percentage: " + str(training_error_percentage))
         print("Test error percentage: " + str(test_error_percentage))
         print("")
