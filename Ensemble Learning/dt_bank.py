@@ -369,6 +369,8 @@ class Dataset:
         # Finally return root node
         return root
 
+    # Calculates the error for a given stump by checking each data sample
+    # and summing the weights for every incorrect prediction
     def stump_error(self, stump):
         total_error = 0
         for i, d in enumerate(self.data):
@@ -388,23 +390,59 @@ class Dataset:
 
             label_prediction = current_node.label
 
+            # Add up the weights of the incorrect predictions
             if (d["label"] != label_prediction):
                 total_error += self.weights[i]
 
-        print(total_error)
+        return total_error
 
-        return 
+    # Updates the weights using the given scale value. Uses the stump determine
+    # correct and incorrect predictions to scale accordingly
+    def update_weights(self, stump, scale):
+        total_weight = 0
+        for i, d in enumerate(self.data):
+            current_node = stump
+            decision = current_node.attribute
+            decision_value = d[decision]
+            # If the value is numeric, compare to the median to determine which branch to take
+            if self.attribute_values[decision] == ["numeric"]:
+                #pdb.set_trace()
+                numeric_median = int(list(current_node.childs.keys())[0][2:])
+                if int(decision_value) < numeric_median:
+                    current_node = current_node.childs["< " + str(numeric_median)]
+                else:
+                    current_node = current_node.childs[">= " + str(numeric_median)]
+            else:
+                current_node = current_node.childs[decision_value]
+
+            label_prediction = current_node.label
+
+            # Scale the weights for the correct and incorrect samples accordingly
+            if (d["label"] == label_prediction):
+                self.weights[i] *= math.exp(-scale)
+            else:
+                self.weights[i] *= math.exp(scale)
+            total_weight += self.weights[i]
+        
+        # Normalize the scaled weights
+        for i, _ in enumerate(self.weights):
+            self.weights[i] /= total_weight
+        
 
     # adaboost algorithm
     def adaboost(self):
         # Create stump
         self.max_depth = 1
-        stump = Node()
         stump = self.id3(self.data, self.attributes)
         
-        # Calculate error
+        # Calculate error and new weight
         stump_error = self.stump_error(stump)
-        #print(stump_error)
+        weight_scale = (1/2) * math.log( (1 - stump_error) / stump_error)
+
+        # Change weights depending on correct and incorrect samples
+        self.update_weights(stump, weight_scale)
+        print(self.weights)
+
         #print(stump)
         return stump
 
