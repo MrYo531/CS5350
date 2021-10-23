@@ -308,8 +308,18 @@ class Dataset:
             root.label = most_common_label
             return root
 
+        # If random tree, then choose random attributes
+        random_attributes = []
+        m = int(len(attributes) / 2)
+        if self.ensemble_method == "random":
+            for _ in range(m):
+                random_i = random.randrange(len(attributes))
+                random_attributes.append(attributes[random_i])
+        else:
+            random_attributes = attributes
+
         # Get best attribute to split on
-        best_attribute = self.calc_best_attribute(data, attributes)
+        best_attribute = self.calc_best_attribute(data, random_attributes)
         root.attribute = best_attribute
         
         # Do things slighlty differently for numeric values
@@ -320,7 +330,7 @@ class Dataset:
             numeric_median = int(statistics.median(numeric_values))
                 
             # Get the subset of examples where the best attribute is less than the median
-            data_ba_n= list(filter(lambda x: int(x[best_attribute]) < numeric_median, data))
+            data_ba_n = list(filter(lambda x: int(x[best_attribute]) < numeric_median, data))
             
             # If the subset is empty, add a leaf node with the most common label from the whole data set
             if len(data_ba_n) == 0:
@@ -336,7 +346,7 @@ class Dataset:
                 return Node("", most_common_label, {})
             # Else add the subtree by recursively calling the id3 algorithm
             else:
-                attributes_ = attributes.copy()
+                attributes_ = random_attributes.copy()
                 attributes_.remove(best_attribute)
                 root.childs["< " + str(numeric_median)] = self.id3(data_ba_n, attributes_, depth + 1)
                 #pdb.set_trace()
@@ -358,7 +368,7 @@ class Dataset:
                 return Node("", most_common_label, {})
             # Else add the subtree by recursively calling the id3 algorithm
             else:
-                attributes_ = attributes.copy()
+                attributes_ = random_attributes.copy()
                 attributes_.remove(best_attribute)
                 root.childs[">= " + str(numeric_median)] = self.id3(data_ba_n, attributes_, depth + 1)
         else:
@@ -381,7 +391,7 @@ class Dataset:
                     return Node("", most_common_label, {})
                 # Else add the subtree by recursively calling the id3 algorithm
                 else:
-                    attributes_ = attributes.copy()
+                    attributes_ = random_attributes.copy()
                     attributes_.remove(best_attribute)
                     root.childs[v] = self.id3(data_ba_v, attributes_, depth + 1)
                     #pdb.set_trace()
@@ -474,7 +484,6 @@ class Dataset:
 
             #print(_, weight_scale)
             #print(stump_error)
-
 
             # Change weights depending on correct and incorrect samples
             self.update_weights(stump, weight_scale)
