@@ -58,10 +58,9 @@ def read_data(CSV_file, attributes):
         for line in f:
             terms = line.strip().split(',')
             values = {}
-            i = 0
-            for a in attributes:
+            
+            for i, a in attributes:
                 values[a] = terms[i]
-                i += 1
 
             values["label"] = terms[i]
             data.append(values)
@@ -134,6 +133,7 @@ class Dataset:
         for _ in range(len(self.data)):
             self.weights.append(1/len(self.data)) 
 
+        # >> For simplicity we treat unknown as a value (causes bugs otherwise)
         # Complete missing "unknown" value with most common value
         # First find most common values for each attribute
         #most_common_values = {}
@@ -420,7 +420,6 @@ class Dataset:
             decision_value = d[decision]
             # If the value is numeric, compare to the median to determine which branch to take
             if self.attribute_values[decision] == ["numeric"]:
-                #pdb.set_trace()
                 numeric_median = int(list(current_node.childs.keys())[0][2:])
                 if int(decision_value) < numeric_median:
                     current_node = current_node.childs["< " + str(numeric_median)]
@@ -461,9 +460,42 @@ class Dataset:
             # Save the stump and it's weights
             forest.append((stump, self.weights))
 
-        print(forest[1][0])
+        return forest
+    
+    # Check the prediction for each stump using the given data sample and 
+    # sum up the weights. The prediction that has the largest sum is chosen.
+    def adaboost_prediction(self, forest, data):
+        # Initialize sums to 0
+        label_predictions = {}
+        for l in self.labels:
+            label_predictions[l] = 0
+        
+        for i, stump in enumerate(forest):
+            current_node = stump[0]
+            decision = current_node.attribute
+            decision_value = data[decision]
+            # If the value is numeric, compare to the median to determine which branch to take
+            if self.attribute_values[decision] == ["numeric"]:
+                numeric_median = int(list(current_node.childs.keys())[0][2:])
+                if int(decision_value) < numeric_median:
+                    current_node = current_node.childs["< " + str(numeric_median)]
+                else:
+                    current_node = current_node.childs[">= " + str(numeric_median)]
+            else:
+                current_node = current_node.childs[decision_value]
 
-        return stump
+            label_prediction = current_node.label
+            weight = stump[1]
+            label_predictions[label_prediction] += weight[i] 
+
+        # Choose the label with the largest weight sum
+        label = ""
+        max_sum = 0
+        for l, s in label_predictions.items():
+            if (s > max_sum):
+                max_sum = s
+                label = l
+        return label
 
 
 def main():
@@ -480,45 +512,76 @@ def main():
     # Use recursive ID3 algorithm to create a decision tree for the dataset
     if (method_of_purity != "ada"):
         decision_tree = dataset.id3(dataset.data, dataset.attributes)
-    else:
-        decision_tree = dataset.adaboost()
+    
+        # Print the resulting tree
+        print(decision_tree)
 
-    # Print the resulting tree
-    #print(decision_tree)
-
-    # Now test the decision tree on the test file
-    # Loop through each example in the test data and keep track of the errors
-    test_data = read_data(test_file, dataset.attributes)
-    prediction_errors = 0
-    for d in test_data: 
-        # Go through our decision tree and find the label prediction
-        label_prediction = ""
-        current_node = decision_tree
-        while True:
-            decision = current_node.attribute
-            if decision == "":
-                label_prediction = current_node.label
-                break
-            decision_value = d[decision]
-            # If the value is numeric, compare to the median to determine which branch to take
-            if dataset.attribute_values[decision] == ["numeric"]:
-                #pdb.set_trace()
-                numeric_median = int(list(current_node.childs.keys())[0][2:])
-                if int(decision_value) < numeric_median:
-                    current_node = current_node.childs["< " + str(numeric_median)]
+        # Now test the decision tree on the test file
+        # Loop through each example in the test data and keep track of the errors
+        test_data = read_data(test_file, dataset.attributes)
+        prediction_errors = 0
+        for d in test_data: 
+            # Go through our decision tree and find the label prediction
+            label_prediction = ""
+            current_node = decision_tree
+            while True:
+                decision = current_node.attribute
+                if decision == "":
+                    label_prediction = current_node.label
+                    break
+                decision_value = d[decision]
+                # If the value is numeric, compare to the median to determine which branch to take
+                if dataset.attribute_values[decision] == ["numeric"]:
+                    #pdb.set_trace()
+                    numeric_median = int(list(current_node.childs.keys())[0][2:])
+                    if int(decision_value) < numeric_median:
+                        current_node = current_node.childs["< " + str(numeric_median)]
+                    else:
+                        current_node = current_node.childs[">= " + str(numeric_median)]
                 else:
-                    current_node = current_node.childs[">= " + str(numeric_median)]
-            else:
-                current_node = current_node.childs[decision_value]
-        
-        # Keep track of incorrect predictions
-        if d["label"] != label_prediction:
-            prediction_errors += 1
-    error_percentage = prediction_errors / len(test_data)
+                    current_node = current_node.childs[decision_value]
+            
+            # Keep track of incorrect predictions
+            if d["label"] != label_prediction:
+                prediction_errors += 1
+        error_percentage = prediction_errors / len(test_data)
 
-    # Print results
-    #print("Purity: " + method_of_purity + "\t Max Depth: " + str(max_depth))
-    #print("Error percentage: " + str(error_percentage))
+        # Print results
+        print("Purity: " + method_of_purity + "\t Max Depth: " + str(max_depth))
+        print("Error percentage: " + str(error_percentage))
+    else:
+        forest = dataset.adaboost()
+
+        # Training
+        prediction_errors = 0
+        for d in dataset.data: 
+            # Go through our decision tree and find the label prediction
+            label_prediction = dataset.adaboost_prediction(forest, d)
+
+            # Keep track of incorrect predictions
+            if d["label"] != label_prediction:
+                prediction_errors += 1
+
+        training_error_percentage = prediction_errors / len(dataset.data)
+
+        # Test
+        test_data = read_data(test_file, dataset.attributes)
+        prediction_errors = 0
+        for d in test_data: 
+            # Go through our decision tree and find the label prediction
+            label_prediction = dataset.adaboost_prediction(forest, d)
+
+            # Keep track of incorrect predictions
+            if d["label"] != label_prediction:
+                prediction_errors += 1
+
+        test_error_percentage = prediction_errors / len(test_data)
+        
+        # Print results
+        print("Adaboost | " + "Forest Size: " + str(dataset.t))
+        print("Training error percentage: " + str(training_error_percentage))
+        print("Test error percentage: " + str(test_error_percentage))
+        print("")
 
 
 if __name__ == "__main__":
