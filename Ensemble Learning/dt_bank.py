@@ -80,6 +80,7 @@ class Dataset:
     attribute_values = {}
     method_of_purity = ""
     max_depth = 0
+    t = 0 # forest size
 
     # Initialize using the description and training files
     def __init__(self, data_desc_file, train_file, method_of_purity, max_depth):
@@ -118,32 +119,36 @@ class Dataset:
             self.method_of_purity = "me"
         elif method_of_purity == "gi":
             self.method_of_purity = "gi"
+        # Note this is for the adaboost algorithm
+        elif method_of_purity == "ada":
+            self.method_of_purity = "gi"
+            self.t = max_depth
 
         # Set max_depth
-        self.max_depth = max_depth
+        self.max_depth = max_depth if (method_of_purity != "ada") else 1
 
         # Get the training data
         self.data = read_data(train_file, self.attributes)
 
         # Initialize sample weights
-        for _ in range(0, len(self.data)):
+        for _ in range(len(self.data)):
             self.weights.append(1/len(self.data)) 
 
         # Complete missing "unknown" value with most common value
         # First find most common values for each attribute
-        most_common_values = {}
-        for a in self.attributes:
-            value_counts = {}
-            for v in self.attribute_values[a]:
-                value_counts[v] = len(list(filter(lambda x: x[a] == v, self.data)))
-            value_counts.pop("unknown", None) # Removes unknown so it isn't the most common value
-            most_common_values[a] = max(value_counts)
+        #most_common_values = {}
+        #for a in self.attributes:
+        #    value_counts = {}
+        #    for v in self.attribute_values[a]:
+        #        value_counts[v] = len(list(filter(lambda x: x[a] == v, self.data)))
+        #    value_counts.pop("unknown", None) # Removes unknown so it isn't the most common value
+        #    most_common_values[a] = max(value_counts)
 
         # Then check each data example and replace any unknowns
-        for d in self.data:
-            for a in self.attributes:
-                if d[a] == "unknown":
-                    d[a] = most_common_values[a]
+        #for d in self.data:
+        #    for a in self.attributes:
+        #        if d[a] == "unknown":
+        #            d[a] = most_common_values[a]
             
 
     # Calculates the entropy for a given data set
@@ -187,8 +192,15 @@ class Dataset:
             return 0
         label_proportions = []
         for l in self.labels:
-            label_proportions.append(sum(x["label"] == l for x in data) / data_size)
-        
+            #label_proportions.append(sum(x["label"] == l for x in data) / data_size)
+            #label_proportions.append(sum((x["label"] == l) * self.weights[i]) for i, x in enumerate(data) / data_size)
+            weighted_sum = 0
+            for i, d in enumerate(self.data):
+                if (d["label"] == l):
+                    weighted_sum += self.weights[i]
+            label_proportions.append(weighted_sum)
+
+
         # Then sum the proportions squared, minus 1 (exact formula: 1 - sum (p^2))
         gi = 0
         for p in label_proportions:
@@ -376,6 +388,8 @@ class Dataset:
         for i, d in enumerate(self.data):
             current_node = stump
             decision = current_node.attribute
+            #print("decision: ", decision)
+            #print(d)
             decision_value = d[decision]
             # If the value is numeric, compare to the median to determine which branch to take
             if self.attribute_values[decision] == ["numeric"]:
@@ -431,19 +445,24 @@ class Dataset:
 
     # adaboost algorithm
     def adaboost(self):
-        # Create stump
-        self.max_depth = 1
-        stump = self.id3(self.data, self.attributes)
-        
-        # Calculate error and new weight
-        stump_error = self.stump_error(stump)
-        weight_scale = (1/2) * math.log( (1 - stump_error) / stump_error)
+        # Create a forest of stumps
+        forest = []
+        for _ in range(self.t):
+            # Create stump
+            stump = self.id3(self.data, self.attributes)
 
-        # Change weights depending on correct and incorrect samples
-        self.update_weights(stump, weight_scale)
-        print(self.weights)
+            # Calculate error and new weight
+            stump_error = self.stump_error(stump)
+            weight_scale = (1/2) * math.log( (1 - stump_error) / stump_error)
 
-        #print(stump)
+            # Change weights depending on correct and incorrect samples
+            self.update_weights(stump, weight_scale)
+
+            # Save the stump and it's weights
+            forest.append((stump, self.weights))
+
+        print(forest[1][0])
+
         return stump
 
 
@@ -451,7 +470,7 @@ def main():
     # Read the chosen method for purity (entropy, me, or gi)
     method_of_purity = "entropy" if len(sys.argv) == 1 else sys.argv[1]
     max_depth = sys.maxsize if len(sys.argv) <= 2 else int(sys.argv[2])
-    
+
     # Set up the file names and dataset variable
     data_desc_file = os.path.join("bank", "data-desc.txt")
     train_file = os.path.join("bank", "train.csv")
@@ -459,11 +478,13 @@ def main():
     dataset = Dataset(data_desc_file, train_file, method_of_purity, max_depth)
     
     # Use recursive ID3 algorithm to create a decision tree for the dataset
-    #decision_tree = dataset.id3(dataset.data, dataset.attributes)
-    decision_tree = dataset.adaboost()
+    if (method_of_purity != "ada"):
+        decision_tree = dataset.id3(dataset.data, dataset.attributes)
+    else:
+        decision_tree = dataset.adaboost()
 
     # Print the resulting tree
-    print(decision_tree)
+    #print(decision_tree)
 
     # Now test the decision tree on the test file
     # Loop through each example in the test data and keep track of the errors
@@ -496,8 +517,8 @@ def main():
     error_percentage = prediction_errors / len(test_data)
 
     # Print results
-    print("Purity: " + method_of_purity + "\t Max Depth: " + str(max_depth))
-    print("Error percentage: " + str(error_percentage))
+    #print("Purity: " + method_of_purity + "\t Max Depth: " + str(max_depth))
+    #print("Error percentage: " + str(error_percentage))
 
 
 if __name__ == "__main__":
