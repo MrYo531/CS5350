@@ -58,9 +58,10 @@ def read_data(CSV_file, attributes):
         for line in f:
             terms = line.strip().split(',')
             values = {}
-            
-            for i, a in attributes:
+            i = 0
+            for a in attributes:
                 values[a] = terms[i]
+                i += 1
 
             values["label"] = terms[i]
             data.append(values)
@@ -199,7 +200,6 @@ class Dataset:
                 if (d["label"] == l):
                     weighted_sum += self.weights[i]
             label_proportions.append(weighted_sum)
-
 
         # Then sum the proportions squared, minus 1 (exact formula: 1 - sum (p^2))
         gi = 0
@@ -436,7 +436,7 @@ class Dataset:
             else:
                 self.weights[i] *= math.exp(scale)
             total_weight += self.weights[i]
-        
+
         # Normalize the scaled weights
         for i, _ in enumerate(self.weights):
             self.weights[i] /= total_weight
@@ -454,11 +454,18 @@ class Dataset:
             stump_error = self.stump_error(stump)
             weight_scale = (1/2) * math.log( (1 - stump_error) / stump_error)
 
+            #print(_, weight_scale)
+            #print(stump_error)
+
+
             # Change weights depending on correct and incorrect samples
             self.update_weights(stump, weight_scale)
 
             # Save the stump and it's weights
             forest.append((stump, self.weights))
+
+        # Print stump errors
+        #print(forest[0][1])
 
         return forest
     
