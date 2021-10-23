@@ -5,3 +5,12 @@ For the decision tree command "dt.py", simply run the command with two arguments
 
 For example, the followng command will create a tree using majority error and a depth of 2: 
 "python3 ./dt.py me 2"
+
+Update:
+
+Passing "ada" for the first argument will run the adaboost algorithm. And the second arguement is the forest size.
+
+By default boost is used as the ensemble method. Passing "bag" as the third parameter will using bagging, "random" will using random forests.
+
+For example, the followng command will use adaboost to create a forest of size 5. Using the bagging algorithm to choose random data points.
+"python3 ./dt.py ada 5 bag"

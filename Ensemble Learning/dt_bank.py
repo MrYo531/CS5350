@@ -310,7 +310,7 @@ class Dataset:
 
         # If random tree, then choose random attributes
         random_attributes = []
-        m = int(len(attributes) / 2)
+        m = int(len(attributes) / 2) + 1
         if self.ensemble_method == "random":
             for _ in range(m):
                 random_i = random.randrange(len(attributes))
