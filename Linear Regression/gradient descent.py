@@ -1,4 +1,4 @@
-import math, os
+import math, os, decimal
 # Gradient Descent 
 
 # dot product of two 1D vectors:
@@ -18,15 +18,16 @@ def subtract(a, b):
 
 # calculates the length of a vector
 def norm(a):
-        squared_sum = 0
+        squared_sum = decimal.Decimal(0)
         for val in a:
+                val = decimal.Decimal(val)
                 squared_sum += val ** 2
         return math.sqrt(squared_sum)
 
 # Gradient Descent algorithm
 def gradient_descent(data, w, b, lr):
         fsize = len(data[0]) - 1 # feature size
-        max_steps = 100
+        max_steps = 10000
         for step in range(max_steps):
                 # Calc gradient
                 gradient = [0] * fsize
@@ -45,28 +46,38 @@ def gradient_descent(data, w, b, lr):
 
                 # new weight & bias
                 ss = [lr * g for g in gradient] # step size
+                prev_w = w
                 w = subtract(w, ss)
                 b -= b_slope * lr
-                print(w, b)
+                #print(w, b)
 
-                # Stop converging when the step size (length) is
+                # Stop iterating when the length of the weight difference
+                # (from the prev iteration) is less than the tolerance level
+                w_diff = subtract(prev_w, w)
+                t = 10e-6
+                #print(step)
+                if norm(w_diff) < t:
+                        return step
+
+                # Stop iterating when the step size (length) is
                 # smaller than the learning rate
-                if norm(ss) < lr:
-                        print(step)
-                        break
+                #if norm(ss) < lr:
+                #        print(step)
+                #        break
+        #return step
 
 # reads the data from the given csv file
 def read_file(CSV_file):
         data = []
         with open(CSV_file, 'r') as f:
                 for line in f:
-                        values = list(map(int, line.strip().split(',')))
+                        values = list(map(float, line.strip().split(',')))
                         data.append(values)
         f.close()
         return data
 
 def main():
-        sample_file = os.path.join("sample.csv")
+        #sample_file = os.path.join("sample.csv")
         #data = [[1, -1, 2, 1],
         #[1, 1, 3, 4],
         #[-1, 1, 0, -1],
@@ -77,13 +88,15 @@ def main():
         train_file = os.path.join("concrete", "train.csv")
         test_file = os.path.join("concrete", "test.csv")
 
-        data = read_file(sample_file)
+        data = read_file(train_file)
+        fsize = len(data[0]) - 1
 
-        w = [-1, 1, -1]
-        b = -1
-        lr = 0.01 # learning rate
+        w = [0] * fsize
+        b = 0
+        lr = 0.0078125 # learning rate
 
-        gradient_descent(data, w, b, lr)
+        step = gradient_descent(data, w, b, lr)
+        print(step)
 
 
 if __name__ == "__main__":
