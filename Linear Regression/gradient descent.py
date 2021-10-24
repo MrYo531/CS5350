@@ -1,48 +1,89 @@
-import math
+import math, os
+# Gradient Descent 
 
-# Gradient Descent
+# dot product of two 1D vectors:
+# multiplies the values of the two vectors together and returns the sum
+def dot(a, b):
+        result = 0
+        for i in range(len(a)):
+                result += a[i] * b[i]
+        return result
 
+# subtracts one 1D vector from the other
+def subtract(a, b):
+        result = []
+        for i in range(len(a)):
+                result.append(a[i] - b[i])
+        return result
 
-def gradient_descent(data, y, w, b, lr):
-        ss = [0, 0, 0]
+# calculates the length of a vector
+def norm(a):
+        squared_sum = 0
+        for val in a:
+                squared_sum += val ** 2
+        return math.sqrt(squared_sum)
+
+# Gradient Descent algorithm
+def gradient_descent(data, w, b, lr):
+        fsize = len(data[0]) - 1 # feature size
         max_steps = 100
-        for step in range(0, max_steps):
-                gradient = [0, 0, 0]
+        for step in range(max_steps):
+                # Calc gradient
+                gradient = [0] * fsize
+                for j in range(fsize):
+                        for x in data:
+                                y = x[-1]
+                                wx = dot(w, x)
+                                gradient[j] += -(y - wx - b) * x[j]
+                
+                # Calc b slope
                 b_slope = 0
-                for j in range(0, len(data[0])):
-                        for i, x in enumerate(data):
-                                gradient[j] += -(y[i] - (w[0]*x[0] + w[1]*x[1] + w[2]*x[2]) - b) * x[j]
-                for i, x in enumerate(data):
-                        b_slope += -(y[i] - (w[0]*x[0] + w[1]*x[1] + w[2]*x[2]) - b)
+                for x in data:
+                        y = x[-1]
+                        wx = dot(w, x)
+                        b_slope += -(y - wx - b)
 
                 # new weight & bias
-                ss = [lr * g for g in gradient]
-                w = [w[0] - ss[0], w[1] - ss[1], w[2] - ss[2]]
+                ss = [lr * g for g in gradient] # step size
+                w = subtract(w, ss)
                 b -= b_slope * lr
                 print(w, b)
 
-                #print(ss)
-                # Stop when the step size is small enough (error is small)
-                if abs(ss[0]) < lr and abs(ss[1]) < lr and abs(ss[2]) < lr:
+                # Stop converging when the step size (length) is
+                # smaller than the learning rate
+                if norm(ss) < lr:
                         print(step)
                         break
 
+# reads the data from the given csv file
+def read_file(CSV_file):
+        data = []
+        with open(CSV_file, 'r') as f:
+                for line in f:
+                        values = list(map(int, line.strip().split(',')))
+                        data.append(values)
+        f.close()
+        return data
+
 def main():
-        data = [[1, -1, 2],
-        [1, 1, 3],
-        [-1, 1, 0],
-        [1, 2, -4],
-        [3, -1, -1]]
-        
-        y = [1, 4, -1, -2, 0]
+        sample_file = os.path.join("sample.csv")
+        #data = [[1, -1, 2, 1],
+        #[1, 1, 3, 4],
+        #[-1, 1, 0, -1],
+        #[1, 2, -4, -2],
+        #[3, -1, -1, 0]]
+        #data = read_file(sample_file)
+
+        train_file = os.path.join("concrete", "train.csv")
+        test_file = os.path.join("concrete", "test.csv")
+
+        data = read_file(sample_file)
 
         w = [-1, 1, -1]
         b = -1
-        lr = 0.01
+        lr = 0.01 # learning rate
 
-        gradient_descent(data, y, w, b, lr)
-
-        #print("nice")
+        gradient_descent(data, w, b, lr)
 
 
 if __name__ == "__main__":
