@@ -49,15 +49,28 @@ def gradient_descent(data, w, b, lr):
                 prev_w = w
                 w = subtract(w, ss)
                 b -= b_slope * lr
-                #print(w, b)
+
+                # calculate cost function value
+                cost = 0
+                for x in data:
+                        y = x[-1]
+                        wx = dot(w, x)
+                        cost += (y - wx - b) ** 2
+                cost *= 1/2
+                
+                # save to csv file for graphing
+                #f = open("cost_func_values.csv", "a")
+                #f.write(str(cost) + "\n")
+                #f.close()
 
                 # Stop iterating when the length of the weight difference
                 # (from the prev iteration) is less than the tolerance level
                 w_diff = subtract(prev_w, w)
                 t = 10e-6
-                #print(step)
                 if norm(w_diff) < t:
-                        return step
+                        print(step)
+                        #print(b)
+                        return w
 
                 # Stop iterating when the step size (length) is
                 # smaller than the learning rate
@@ -95,8 +108,19 @@ def main():
         b = 0
         lr = 0.0078125 # learning rate
 
-        step = gradient_descent(data, w, b, lr)
-        print(step)
+        best_weight = gradient_descent(data, w, b, lr)
+        print(best_weight)
+
+        # Find the cost for the test data using our best weight
+        test_data = read_file(test_file)
+        cost = 0
+        for x in test_data:
+                y = x[-1]
+                wx = dot(best_weight, x)
+                cost += (y - wx - b) ** 2
+        cost *= 1/2
+        print("Cost for test data: ", cost)
+
 
 
 if __name__ == "__main__":
