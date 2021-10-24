@@ -12,5 +12,9 @@ Passing "ada" for the first argument will run the adaboost algorithm. And the se
 
 By default boost is used as the ensemble method. Passing "bag" as the third parameter will using bagging, "random" will using random forests.
 
-For example, the followng command will use adaboost to create a forest of size 5. Using the bagging algorithm to choose random data points.
+For example, the followng command will use adaboost to create a forest of size 5. Using the bagging algorithm to choose random data points:
 "python3 ./dt.py ada 5 bag"
+
+In the Linear Regression folder is the gradient descent and stochastic gradient descent algorithm. Simply run the script to see the best weight and cost function value for the test data.
+For example:
+"python3 '.\stochastic gradient descent.py'"
