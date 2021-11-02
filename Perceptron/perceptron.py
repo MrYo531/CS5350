@@ -1,4 +1,4 @@
-import sys, os
+import sys, os, random
 
 # reads the data from the given csv file
 def read_file(CSV_file):
@@ -38,6 +38,9 @@ def add(a, b):
 # perceptron algorithm (standard version)
 def perceptron(data, w, r, t):
     for _ in range(t):
+        # shuffle the data
+        random.shuffle(data)
+
         # loop through each data sample
         for x in data:
              # save the y (label) value because we will overwrite it
@@ -92,6 +95,8 @@ def perceptron_voted(data, w, r, t):
 
 # perceptron algorithm (average version)
 def perceptron_avg(data, w, r, t):
+    # 'a' will represent the sum of all the different weights
+    a = w
     for _ in range(t):
         # loop through each data sample
         for x in data:
@@ -108,8 +113,11 @@ def perceptron_avg(data, w, r, t):
             # if misclassified, update our weight vector
             if y * wx <= 0:
                 w = add(w, scale(x, r * y))
+
+            # add the current weight for every iteration
+            a = add(a, w)
         #print(w)
-    return w
+    return a
 
 
 
@@ -155,6 +163,7 @@ def main():
             if label * prediction <= 0:
                 errors += 1
 
+
         error_percentage = errors / len(test_data)
         print("[" + perceptron_method + "]", "average prediction error:", error_percentage)
 
@@ -193,7 +202,32 @@ def main():
         print("[" + perceptron_method + "]", "average prediction error:", error_percentage)
 
     elif perceptron_method == "average":
-        print("average")
+        
+        # use the algorithm to calc the best weight vector
+        learned_weight = perceptron_avg(data, w, r, t)
+        print("learned weight vector:", [round(num, 3) for num in learned_weight])
+
+        # determine the average prediction error on the test data
+        errors = 0
+        test_data = read_file(test_file)
+        for x in test_data:
+            # save the correct label because we will overwrite it
+            label = x[-1]
+            # and change any 0s to -1, that way it's easier to compare with
+            label = -1.0 if label == 0 else label 
+            # because we have b folded in w, the last value should be 1 so it can be multiplied through and have the bias be included in the final prediction value
+            x[-1] = 1
+
+            # find our prediction value by multiplying our weight vector with the data sample
+            prediction = dot(learned_weight, x)
+
+            # if misclassified, update our weight vector
+            if label * prediction <= 0:
+                errors += 1
+
+        error_percentage = errors / len(test_data)
+        print("[" + perceptron_method + "]", "average prediction error:", error_percentage)
+
     else:
         print("Invalid command")
 
