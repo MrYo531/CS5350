@@ -27,9 +27,17 @@ def scale(v, n):
     return v
 
 
+# adds one 1D vector to the other
+def add(a, b):
+    result = []
+    for i in range(len(a)):
+        result.append(a[i] + b[i])
+    return result
+
+
 # perceptron algorithm
 def perceptron(data, w, r, t):
-    for i in range(1): # FIXME put back to t
+    for _ in range(t):
         # maybe keep track of errors, so we can break early
         # loop through each data sample
         for x in data:
@@ -45,11 +53,8 @@ def perceptron(data, w, r, t):
 
             # if misclassified, update our weight vector
             if y * wx <= 0:
-                print("misclassified")
-                print(x)
-                print(r * y)
-                w = scale(x, r * y)
-                print(w, "\n")
+                w = add(w, scale(x, r * y))
+        #print(w)
 
     return w
 
@@ -63,7 +68,7 @@ def main():
     data = read_file(train_file)
     dsize = len(data[0])
 
-    w = [-1] * dsize # folded b into w
+    w = [0] * dsize # folded b into w
     r = 0.1 # learning rate
     t = 10 # epoch
 
