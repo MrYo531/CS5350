@@ -1,4 +1,4 @@
-import os
+import sys, os
 
 # reads the data from the given csv file
 def read_file(CSV_file):
@@ -35,11 +35,10 @@ def add(a, b):
     return result
 
 
-# perceptron algorithm
+# perceptron algorithm (standard version)
 def perceptron(data, w, r, t):
     for _ in range(t):
         # loop through each data sample
-        #errors = 0
         for x in data:
              # save the y (label) value because we will overwrite it
             y = x[-1]
@@ -54,14 +53,67 @@ def perceptron(data, w, r, t):
             # if misclassified, update our weight vector
             if y * wx <= 0:
                 w = add(w, scale(x, r * y))
-                #errors += 1
         #print(w)
-        #print("errors:", errors)
     return w
+
+# perceptron algorithm (voted version)
+def perceptron_voted(data, w, r, t):
+    m = 0 # number of weights
+    Cm = 0 # number of correct predictions for each weight
+    weights = [] # keeps track of multiple weights
+    weights.append((w, Cm))
+
+    for _ in range(t):
+        # loop through each data sample
+        for x in data:
+             # save the y (label) value because we will overwrite it
+            y = x[-1]
+            # and change any 0s to -1, that way it's easier to compare with
+            y = -1.0 if y == 0 else y 
+            # because we have b folded in w, the last value should be 1 so it can be multiplied through and have the bias be included in the final prediction value
+            x[-1] = 1 
+            
+            # find our prediction value by multiplying our weight vector with the data sample
+            wx = dot(weights[m][0], x)
+
+            # if misclassified, update our weight vector
+            if y * wx <= 0:
+                weights.append((add(weights[m][0], scale(x, r * y)), Cm))
+                m += 1
+                Cm = 1
+            else:
+                Cm += 1
+        #print(w)
+    return weights
+
+# perceptron algorithm (average version)
+def perceptron_avg(data, w, r, t):
+    for _ in range(t):
+        # loop through each data sample
+        for x in data:
+             # save the y (label) value because we will overwrite it
+            y = x[-1]
+            # and change any 0s to -1, that way it's easier to compare with
+            y = -1.0 if y == 0 else y 
+            # because we have b folded in w, the last value should be 1 so it can be multiplied through and have the bias be included in the final prediction value
+            x[-1] = 1 
+            
+            # find our prediction value by multiplying our weight vector with the data sample
+            wx = dot(w, x)
+
+            # if misclassified, update our weight vector
+            if y * wx <= 0:
+                w = add(w, scale(x, r * y))
+        #print(w)
+    return w
+
 
 
 # reads the data and runs the perceptron algorithm to find the best weight vector
 def main():
+    # read the chosen method for the perceptron algorithm (standard, voted, or average)
+    perceptron_method = "standard" if len(sys.argv) == 1 else sys.argv[1]
+
     # define the file paths for the training and test data
     train_file = os.path.join("bank-note", "train.csv")
     test_file = os.path.join("bank-note", "test.csv")
@@ -76,7 +128,10 @@ def main():
     t = 10 # epoch
 
     # use the algorithm to calc the best weight vector
-    learned_weight = perceptron(data, w, r, t)
+    learned_weight = perceptron_voted(data, w, r, t)
+    print(learned_weight)
+    
+    learned_weight = learned_weight[0][0]
     print("learned weight vector:", [round(num, 3) for num in learned_weight])
 
     # determine the average prediction error on the test data
