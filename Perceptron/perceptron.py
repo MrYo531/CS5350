@@ -156,18 +156,16 @@ def main():
                 errors += 1
 
         error_percentage = errors / len(test_data)
-        print("average prediction error:", error_percentage)
+        print("[" + perceptron_method + "]", "average prediction error:", error_percentage)
 
     elif perceptron_method == "voted":
         
-        # use the algorithm to calc the weight vectors
+        # use the algorithm to calc the weight vectors and their correct predictions
         learned_weights = perceptron_voted(data, w, r, t)
-        #print(learned_weights)
         
-        for weight in learned_weights:
-            print("learned weight vector:", [round(num, 3) for num in weight[0]], "| Cm:", weight[1])
+        for i, weight in enumerate(learned_weights):
+            print("[" + str(i) + "]", "learned weight vector:", [round(num, 3) for num in weight[0]], "| Cm:", weight[1])
 
-        return
         # determine the average prediction error on the test data
         errors = 0
         test_data = read_file(test_file)
@@ -179,15 +177,20 @@ def main():
             # because we have b folded in w, the last value should be 1 so it can be multiplied through and have the bias be included in the final prediction value
             x[-1] = 1
 
-            # find our prediction value by multiplying our weight vector with the data sample
-            prediction = dot(learned_weight, x)
+            # find our prediction value by multiplying our weight vector with the data sample 
+            # and by the Cm value FOR EACH vector. then sum
+            prediction_sum = 0
+            for weight in learned_weights:
+                prediction = dot(weight[0], x)
+                sign = 1 if prediction > 0 else -1
+                prediction_sum += weight[1] * sign
 
             # if misclassified, update our weight vector
-            if label * prediction <= 0:
+            if label * prediction_sum <= 0:
                 errors += 1
 
         error_percentage = errors / len(test_data)
-        print("average prediction error:", error_percentage)
+        print("[" + perceptron_method + "]", "average prediction error:", error_percentage)
 
     elif perceptron_method == "average":
         print("average")
