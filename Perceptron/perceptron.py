@@ -14,31 +14,42 @@ def read_file(CSV_file):
 # dot product of two 1D vectors:
 # multiplies the values of the two vectors together and returns the sum
 def dot(a, b):
-        result = 0
-        for i in range(len(a)):
-                result += a[i] * b[i]
-        return result
+    result = 0
+    for i in range(len(a)):
+        result += a[i] * b[i]
+    return result
+
+
+# scales a vector (v) by a number (n)
+def scale(v, n):
+    for i in range(len(v)):
+        v[i] *= n
+    return v
 
 
 # perceptron algorithm
 def perceptron(data, w, r, t):
-    for i in range(1): # FIXME
+    for i in range(1): # FIXME put back to t
         # maybe keep track of errors, so we can break early
+        # loop through each data sample
         for x in data:
-            label = x[-1] # save the label value because we will overwrite it
-            label = -1.0 if label == 0 else label # and change any 0s to -1, that way it's easier to compare with
-            x[-1] = 1 # because we have b folded in w, the last attrib should be 1 so it will be multiplied through and have the bias included in the final prediction value
+             # save the y (label) value because we will overwrite it
+            y = x[-1]
+            # and change any 0s to -1, that way it's easier to compare with
+            y = -1.0 if y == 0 else y 
+            # because we have b folded in w, the last attrib should be 1 so it will be multiplied through and have the bias included in the final prediction value
+            x[-1] = 1 
             
-            prediction = dot(w, x)
-            print(prediction)
-            print(label)
+            # find our prediction value by multiplying our weight vector with the data sample
+            wx = dot(w, x)
 
-            if label * prediction <= 0:
-                print("not matching")
-            else:
-                print("matching")
-
-            print()
+            # if misclassified, update our weight vector
+            if y * wx <= 0:
+                print("misclassified")
+                print(x)
+                print(r * y)
+                w = scale(x, r * y)
+                print(w, "\n")
 
     return w
 
