@@ -61,7 +61,7 @@ def perceptron_voted(data, w, r, t):
     m = 0 # number of weights
     Cm = 0 # number of correct predictions for each weight
     weights = [] # keeps track of multiple weights
-    weights.append((w, Cm))
+    weights.append((w, Cm)) # add the first weight so the algorithm can use it
 
     for _ in range(t):
         # loop through each data sample
@@ -78,6 +78,10 @@ def perceptron_voted(data, w, r, t):
 
             # if misclassified, update our weight vector
             if y * wx <= 0:
+                # the count for the first weight needs to be corrected
+                if len(weights) == 1:
+                    weights[0] = (w, Cm)
+
                 weights.append((add(weights[m][0], scale(x, r * y)), Cm))
                 m += 1
                 Cm = 1
