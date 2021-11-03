@@ -16,5 +16,13 @@ For example, the followng command will use adaboost to create a forest of size 5
 "python3 ./dt.py ada 5 bag"
 
 In the Linear Regression folder is the gradient descent and stochastic gradient descent algorithm. Simply run the script to see the best weight and cost function value for the test data.
+
 For example:
 "python3 '.\stochastic gradient descent.py'"
+
+Update:
+
+For the Perceptron algorithm, simply run the command with one arguement, which specifies with version to run. Either "standard", "voted", or "average".
+
+For example, the followng command will run the perceptron algorithm using the average version: 
+"python3 .\perceptron.py average"
