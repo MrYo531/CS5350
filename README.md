@@ -22,7 +22,7 @@ For example:
 
 Update:
 
-For the Perceptron algorithm, simply run the command with one arguement, which specifies with version to run. Either "standard", "voted", or "average".
+For the Perceptron algorithm, simply run the command with one argument, which specifies with version to run. Either "standard", "voted", or "average".
 
 For example, the followng command will run the perceptron algorithm using the average version: 
 "python3 .\perceptron.py average"
