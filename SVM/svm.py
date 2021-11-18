@@ -1,4 +1,4 @@
-import sys, os, random, math, decimal
+import sys, os, random, math, decimal, copy
 
 # reads the data from the given csv file
 def read_file(CSV_file):
@@ -18,14 +18,11 @@ def dot(a, b):
         result += a[i] * b[i]
     return result
 
-
 # scales a vector (v) by a number (n)
 def scale(v, n):
-    return [n * c for c in v]
     for i in range(len(v)):
         v[i] *= n
     return v
-
 
 # adds one 1D vector to the other
 def add(a, b):
@@ -64,7 +61,7 @@ def svm(data, w, lr, t, c, a):
         prev_w = w
 
         # loop through each data sample
-        for x in data:
+        for x in copy.deepcopy(data): # copy is important, otherwise we're changing the actual data (fixed bug)
             w_0 = w[:-1] # without bias
 
             N = len(data) # data size 
@@ -84,8 +81,7 @@ def svm(data, w, lr, t, c, a):
             if y * wx <= 1:
                 w = add(sub(w, scale((w_0 + [0]), r)), scale(x, r*c*N*y))
             else:
-                w = scale(w, 1 - r) # don't update bias
-                # using w[:-1] wasn't working   
+                w[:-1] = scale(w[:-1], 1 - r) # don't update bias 
 
         # Stop iterating when the length of the weight difference
         # (from the prev iteration) is less than the tolerance level
@@ -106,6 +102,8 @@ def main():
     # define the file paths for the training and test data
     train_file = os.path.join("bank-note", "train.csv")
     test_file = os.path.join("bank-note", "test.csv")
+    #train_file = os.path.join("SVM", "bank-note", "train.csv")
+    #test_file = os.path.join("SVM", "bank-note", "test.csv")
 
     # read the data from the file into a list
     data = read_file(train_file)
@@ -113,8 +111,8 @@ def main():
 
     # setup init values
     w = [0] * size # folded b into w
-    r = 0.1 # learning rate
-    t = 100 # epoch
+    r = 0.001 # learning rate
+    t = 1000 # epoch
     c = 100/873 # hyperparameter
     a = 0.001 # for adjusting the learning rate
 
