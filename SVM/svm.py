@@ -54,7 +54,7 @@ def norm(a):
 def svm(data, w, lr, t, c, a):
     for epoch in range(t):
         # update learning rate so weight converges
-        r = lr / (1 + (lr * t / a))
+        r = lr / (1 + (lr * epoch / a))
 
         # shuffle the data
         random.shuffle(data)
@@ -64,6 +64,7 @@ def svm(data, w, lr, t, c, a):
         # loop through each data sample
         for x in data:
             w_0 = w[:-1] # without bias
+
             N = len(data) # data size 
 
             # save the y (label) value because we will overwrite it
@@ -75,13 +76,13 @@ def svm(data, w, lr, t, c, a):
 
             # find our prediction value by multiplying our weight vector with the data sample
             wx = dot(w, x)
+
             # take the derivative of the svm objective at the current w to be the gradient J^t(w)
             # different sub-gradient values based on the prediction value
             if y * wx <= 1:
-                w = add(sub(w, scale((w_0 + [0]), r)), scale(x, c*N*y))
+                w = add(sub(w, scale((w_0 + [0]), r)), scale(x, r*c*N*y))
             else:
                 w[:-1] = scale(w[:-1], 1 - r) # don't update bias
-
 
         # Stop iterating when the length of the weight difference
         # (from the prev iteration) is less than the tolerance level
@@ -109,7 +110,7 @@ def main():
 
     # setup init values
     w = [0] * size # folded b into w
-    r = 0.00001 # learning rate 0.00001
+    r = 0.001 # learning rate 0.00001
     t = 500 # epoch
     c = 100/873 # hyperparameter
     a = 1
