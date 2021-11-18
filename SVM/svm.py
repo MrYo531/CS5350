@@ -48,11 +48,14 @@ def norm(a):
 
 
 # svm algorithm using stochastic sub-gradient descent
-def svm(data, w, lr, t, c, a):
+def svm(data, w, lr, t, c, a, schedule):
     for epoch in range(t):
         # update learning rate so weight is ensured to converge
-        r = lr / (1 + (lr * epoch / a))
-        #r = lr / (1 + epoch)
+        # schedule chooses which option
+        if schedule == 0:
+            r = lr / (1 + (lr * epoch / a))
+        else:
+            r = lr / (1 + epoch)
 
         # shuffle the data
         random.shuffle(data)
@@ -83,7 +86,7 @@ def svm(data, w, lr, t, c, a):
             else:
                 w[:-1] = scale(w[:-1], 1 - r) # don't update bias 
 
-        # Stop iterating when the length of the weight difference
+        # Stop iterating when the length of the weight difference vector
         # (from the prev iteration) is less than the tolerance level
         w_diff = sub(prev_w, w)
         tolerance = 10e-3
@@ -96,13 +99,18 @@ def svm(data, w, lr, t, c, a):
 
 # reads the data and runs the perceptron algorithm to find the best weight vector
 def main():
-    # read the chosen method for the perceptron algorithm (standard, voted, or average)
-    # perceptron_method = "standard" if len(sys.argv) == 1 else sys.argv[1]
+    # read and set the c value
+    c = 100/873 if len(sys.argv) == 1 else float(sys.argv[1])
+    #print("c:", c)
+
+    # read and set the schedule option
+    schedule = 0 if len(sys.argv) <= 2 else float(sys.argv[2])
+
 
     # define the file paths for the training and test data
     train_file = os.path.join("bank-note", "train.csv")
     test_file = os.path.join("bank-note", "test.csv")
-    #train_file = os.path.join("SVM", "bank-note", "train.csv")
+    #train_file = os.path.join("SVM", "bank-note", "train.csv") # for debugging
     #test_file = os.path.join("SVM", "bank-note", "test.csv")
 
     # read the data from the file into a list
@@ -111,36 +119,61 @@ def main():
 
     # setup init values
     w = [0] * size # folded b into w
-    r = 0.001 # learning rate
-    t = 1000 # epoch
-    c = 100/873 # hyperparameter
-    a = 0.001 # for adjusting the learning rate
+    r = 0.0001 # learning rate
+    t = 100 # epoch
+    #c = 100/873 # hyperparameter
+    a = 0.0001 # for adjusting the learning rate
 
     # use the algorithm to calc the best weight vector
-    learned_weight = svm(data, w, r, t, c, a)
+    learned_weight = svm(data, w, r, t, c, a, schedule)
     print("learned weight vector:", [round(num, 3) for num in learned_weight])
 
+    # ------------------------
+    # TRAINING AND TEST ERRORS
+    # ------------------------
+
+    # determine the average prediction error on the training data
+    errors = 0
+    for x in copy.deepcopy(data):
+        # save the correct label because we will overwrite it
+        label = x[-1]
+        # and change any 0s to -1, that way it's easier to compare with
+        label = -1.0 if label == 0 else label 
+        # because we have b folded in w, the last value should be 1 so it can be multiplied through and have the bias be included in the final prediction value
+        x[-1] = 1
+
+        # find our prediction value by multiplying our weight vector with the data sample
+        prediction = dot(learned_weight, x)
+
+        # if misclassified, update our weight vector
+        if label * prediction <= 0:
+            errors += 1
+
+    error_percentage = errors / len(data)
+    print("training error:", error_percentage)
+
+
     # determine the average prediction error on the test data
-    # errors = 0
-    # test_data = read_file(test_file)
-    # for x in test_data:
-    #     # save the correct label because we will overwrite it
-    #     label = x[-1]
-    #     # and change any 0s to -1, that way it's easier to compare with
-    #     label = -1.0 if label == 0 else label 
-    #     # because we have b folded in w, the last value should be 1 so it can be multiplied through and have the bias be included in the final prediction value
-    #     x[-1] = 1
+    errors = 0
+    test_data = read_file(test_file)
+    for x in copy.deepcopy(test_data):
+        # save the correct label because we will overwrite it
+        label = x[-1]
+        # and change any 0s to -1, that way it's easier to compare with
+        label = -1.0 if label == 0 else label 
+        # because we have b folded in w, the last value should be 1 so it can be multiplied through and have the bias be included in the final prediction value
+        x[-1] = 1
 
-    #     # find our prediction value by multiplying our weight vector with the data sample
-    #     prediction = dot(learned_weight, x)
+        # find our prediction value by multiplying our weight vector with the data sample
+        prediction = dot(learned_weight, x)
 
-    #     # if misclassified, update our weight vector
-    #     if label * prediction <= 0:
-    #         errors += 1
+        # if misclassified, update our weight vector
+        if label * prediction <= 0:
+            errors += 1
 
 
-    # error_percentage = errors / len(test_data)
-    # print("[" + perceptron_method + "]", "average prediction error:", error_percentage)
+    error_percentage = errors / len(test_data)
+    print("test error:", error_percentage)
 
 
 
