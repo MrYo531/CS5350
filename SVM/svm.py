@@ -53,12 +53,14 @@ def norm(a):
 # svm algorithm using stochastic sub-gradient descent
 def svm(data, w, lr, t, c, a):
     for epoch in range(t):
-        # update learning rate so weight converges
+        # update learning rate so weight is ensured to converge
         r = lr / (1 + (lr * epoch / a))
+        #r = lr / (1 + epoch)
 
         # shuffle the data
         random.shuffle(data)
 
+        # keep track of previous weight
         prev_w = w
 
         # loop through each data sample
@@ -82,16 +84,17 @@ def svm(data, w, lr, t, c, a):
             if y * wx <= 1:
                 w = add(sub(w, scale((w_0 + [0]), r)), scale(x, r*c*N*y))
             else:
-                w[:-1] = scale(w[:-1], 1 - r) # don't update bias
+                w = scale(w, 1 - r) # don't update bias
+                # using w[:-1] wasn't working   
 
         # Stop iterating when the length of the weight difference
         # (from the prev iteration) is less than the tolerance level
         w_diff = sub(prev_w, w)
-        print(w_diff)
-        tolerance = 10e-6
+        tolerance = 10e-3
         if norm(w_diff) < tolerance:
-            print("epoch:", epoch)
+            print("converged at epoch:", epoch)
             return w
+
     return w
 
 
@@ -110,11 +113,10 @@ def main():
 
     # setup init values
     w = [0] * size # folded b into w
-    r = 0.001 # learning rate 0.00001
-    t = 500 # epoch
+    r = 0.1 # learning rate
+    t = 100 # epoch
     c = 100/873 # hyperparameter
-    a = 1
-
+    a = 0.001 # for adjusting the learning rate
 
     # use the algorithm to calc the best weight vector
     learned_weight = svm(data, w, r, t, c, a)
