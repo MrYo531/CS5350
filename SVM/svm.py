@@ -1,4 +1,6 @@
 import sys, os, random, math, decimal, copy
+import numpy as np
+from scipy.optimize import minimize
 
 # reads the data from the given csv file
 def read_file(CSV_file):
@@ -47,7 +49,7 @@ def norm(a):
         return math.sqrt(squared_sum)
 
 
-# svm algorithm using stochastic sub-gradient descent
+# svm algorithm using stochastic sub-gradient descent (primal)
 def svm(data, w, lr, t, c, a, schedule):
     for epoch in range(t):
         # update learning rate so weight is ensured to converge
@@ -97,6 +99,49 @@ def svm(data, w, lr, t, c, a, schedule):
     return w
 
 
+# quadratic convex equation that we want to minimize
+def quad_conv_eq(alpha, *args):
+    x = args[0]
+    y = args[1]
+
+    xx = x * x
+    yy = y * y
+    aa = alpha * alpha
+
+    yax = np.sum(yy * aa * xx)
+
+    return (1/2) * yax - np.sum(alpha)
+
+# one of constraints for the quadratic convex equation
+def constraint(alpha, args):
+    y = args[1]
+    return np.sum(np.multiply(alpha, y))
+
+
+# svm algorithm using stochastic sub-gradient descent (dual)
+def svm_dual(data, w, lr, t, c, a, schedule):
+    # set up x, y as numpy arrays from data
+    size = len(data)
+    x = np.array([data[r][:-1] for r in range(size)])
+    y = np.array([data[r][-1] for r in range(size)])
+    # replace 0s with -1
+    y = np.where(y == 0, -1, y)
+
+    # define the parameters for the minimize optimizer
+    initial_guess = np.zeros(size) # try initializing with c or random numbers?
+    args = (x, y)
+    method = 'SLSQP'
+    bounds = [(0, c)] * size
+    constraints = [{'type': 'eq', 'fun' : constraint, 'args' : args}]
+
+    # find the optimal alpha by minimizing the quadratic convex equation
+    optimal_alpha = minimize(quad_conv_eq, initial_guess, args, method, bounds, constraints)
+    print(optimal_alpha)
+
+    return w
+
+
+
 # reads the data and runs the perceptron algorithm to find the best weight vector
 def main():
     # read and set the c value
@@ -105,6 +150,9 @@ def main():
 
     # read and set the schedule option
     schedule = 0 if len(sys.argv) <= 2 else float(sys.argv[2])
+
+    # determine whether to call the primal or dual domain svm algorithm
+    domain = "primal" if len(sys.argv) <= 3 else sys.argv[3]
 
 
     # define the file paths for the training and test data
@@ -124,8 +172,13 @@ def main():
     #c = 100/873 # hyperparameter
     a = 0.0001 # for adjusting the learning rate
 
-    # use the algorithm to calc the best weight vector
-    learned_weight = svm(data, w, r, t, c, a, schedule)
+    if domain == "primal":
+        # use the algorithm to calc the best weight vector
+        learned_weight = svm(data, w, r, t, c, a, schedule)
+    else:
+        learned_weight = svm_dual(data, w, r, t, c, a, schedule)
+        return
+
     print("learned weight vector:", [round(num, 3) for num in learned_weight])
 
     # ------------------------
