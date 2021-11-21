@@ -129,8 +129,10 @@ def svm_dual(data, w, lr, t, c, a, schedule):
     y = np.where(y == 0, -1, y)
 
     # define the parameters for the minimize optimizer
-    #initial_guess = np.zeros(size) # try initializing with c or random numbers?
-    initial_guess = np.random.rand(size)
+    #initial_guess = np.zeros(size) # this just gives us 0
+    #initial_guess = np.full((size), 1) # this gives us 640 support vectors..
+    initial_guess = np.random.rand(size) # this is inconsistent...
+    
     args = (x, y)
     method = 'SLSQP'
     bounds = [(0, c)] * size
@@ -140,10 +142,20 @@ def svm_dual(data, w, lr, t, c, a, schedule):
     res = minimize(quad_conv_eq, initial_guess, args, method, bounds = bounds, constraints = constraints)
     best_alpha = res.x
     
-    print(best_alpha)
+    #print(best_alpha)
+    
+    # get number of support vectors
+    support_vectors = np.where(0 < best_alpha)[0]
+    print("num of support vectors:", len(support_vectors))
+
+    # calculate weight
+    w = np.sum((best_alpha * y)[0, 0] * x, axis=0)
+    bias = np.sum((best_alpha * y)[0, 0] * (x * x.T))
+    w = np.matrix.tolist(w)[0]
+    bias = np.matrix.tolist(bias)
+    w.append(bias)
 
     return w
-
 
 
 # reads the data and runs the perceptron algorithm to find the best weight vector
@@ -181,7 +193,6 @@ def main():
         learned_weight = svm(data, w, r, t, c, a, schedule)
     else:
         learned_weight = svm_dual(data, w, r, t, c, a, schedule)
-        return
 
     print("learned weight vector:", [round(num, 3) for num in learned_weight])
 
