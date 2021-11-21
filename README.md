@@ -26,3 +26,11 @@ For the Perceptron algorithm, simply run the command with one argument, which sp
 
 For example, the followng command will run the perceptron algorithm using the average version: 
 "python3 .\perceptron.py average"
+
+Update:
+
+For the SVM algorithm, the script takes 4 parameters:
+- The first is the hyperparameter C (float)
+- The second is the schedule version, which determines which equation to dynamically change the learning rate (0 or 1)
+- The third is the whether to run the "primal" or "dual" version of SVM
+- The fourth is whether to use a "linear" or "gaussian" kernal
