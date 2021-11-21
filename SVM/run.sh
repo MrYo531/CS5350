@@ -42,5 +42,4 @@ python3 ./svm.py 0.573 0 dual gaussian
 echo -e "\n c = 700/873"
 python3 ./svm.py 0.802 0 dual gaussian
 
-echo -e "\n\nPart 3)\n"
 $SHELL

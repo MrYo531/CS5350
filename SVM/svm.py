@@ -102,8 +102,13 @@ def svm(data, w, lr, t, c, a, schedule):
 def quad_conv_eq(alpha, *args):
     x = args[0]
     y = args[1]
+    lr = args[2]
 
-    xx = x * x.T
+    if lr != -1:
+        xx = x * x.T
+    else:
+        xx = np.exp(-np.sum(np.square(x - x)) / lr) # gaussian kernel
+
     yy = y * y.T
     aa = alpha * alpha.T
 
@@ -120,7 +125,7 @@ def constraint(alpha, *args):
 
 
 # svm algorithm using stochastic sub-gradient descent (dual)
-def svm_dual(data, w, lr, t, c, a, schedule):
+def svm_dual(data, w, c, lr):
     # set up x, y as numpy arrays from data
     size = len(data)
     x = np.matrix([data[i][:-1] for i in range(size)])
@@ -133,7 +138,7 @@ def svm_dual(data, w, lr, t, c, a, schedule):
     #initial_guess = np.full((size), 1) # this gives us 640 support vectors..
     initial_guess = np.random.rand(size) # this is inconsistent...
     
-    args = (x, y)
+    args = (x, y, lr)
     method = 'SLSQP'
     bounds = [(0, c)] * size
     constraints = [{'type': 'eq', 'fun' : constraint, 'args' : args}]
@@ -145,57 +150,19 @@ def svm_dual(data, w, lr, t, c, a, schedule):
     #print(best_alpha)
     
     # get number of support vectors
-    support_vectors = np.where(0 < best_alpha)[0]
+    support_vectors = np.where(best_alpha > 0)[0]
     print("num of support vectors:", len(support_vectors))
 
     # calculate weight
     w = np.sum((best_alpha * y)[0, 0] * x, axis=0)
-    bias = np.sum((best_alpha * y)[0, 0] * (x * x.T))
     w = np.matrix.tolist(w)[0]
-    bias = np.matrix.tolist(bias)
-    w.append(bias)
+    b = np.sum((best_alpha * y)[0, 0] * (x * x.T))
+    b = np.matrix.tolist(b)
+    w.append(b)
 
     return w
 
-
-# reads the data and runs the perceptron algorithm to find the best weight vector
-def main():
-    # read and set the c value
-    c = 100/873 if len(sys.argv) == 1 else float(sys.argv[1])
-    #print("c:", c)
-
-    # read and set the schedule option
-    schedule = 0 if len(sys.argv) <= 2 else float(sys.argv[2])
-
-    # determine whether to call the primal or dual domain svm algorithm
-    version = "primal" if len(sys.argv) <= 3 else sys.argv[3]
-
-
-    # define the file paths for the training and test data
-    train_file = os.path.join("bank-note", "train.csv")
-    test_file = os.path.join("bank-note", "test.csv")
-    #train_file = os.path.join("SVM", "bank-note", "train.csv") # for debugging
-    #test_file = os.path.join("SVM", "bank-note", "test.csv")
-
-    # read the data from the file into a list
-    data = read_file(train_file)
-    size = len(data[0])
-
-    # setup init values
-    w = [0] * size # folded b into w
-    r = 0.0001 # learning rate
-    t = 100 # epoch
-    #c = 100/873 # hyperparameter
-    a = 0.0001 # for adjusting the learning rate
-
-    if version == "primal":
-        # use the algorithm to calc the best weight vector
-        learned_weight = svm(data, w, r, t, c, a, schedule)
-    else:
-        learned_weight = svm_dual(data, w, r, t, c, a, schedule)
-
-    print("learned weight vector:", [round(num, 3) for num in learned_weight])
-
+def print_errors(learned_weight, data, test_data):
     # ------------------------
     # TRAINING AND TEST ERRORS
     # ------------------------
@@ -223,7 +190,6 @@ def main():
 
     # determine the average prediction error on the test data
     errors = 0
-    test_data = read_file(test_file)
     for x in copy.deepcopy(test_data):
         # save the correct label because we will overwrite it
         label = x[-1]
@@ -243,6 +209,60 @@ def main():
     error_percentage = errors / len(test_data)
     print("test error:", error_percentage)
 
+# reads the data and runs the perceptron algorithm to find the best weight vector
+def main():
+    # read and set the c value
+    c = 100/873 if len(sys.argv) == 1 else float(sys.argv[1])
+    #print("c:", c)
+
+    # read and set the schedule option
+    schedule = 0 if len(sys.argv) <= 2 else float(sys.argv[2])
+
+    # determine whether to call the primal or dual domain svm algorithm
+    domain = "primal" if len(sys.argv) <= 3 else sys.argv[3]
+
+    # determine whether use either the linear or gaussian kernel
+    kernel = "linear" if len(sys.argv) <= 4 else sys.argv[4]
+
+
+    # define the file paths for the training and test data
+    train_file = os.path.join("bank-note", "train.csv")
+    test_file = os.path.join("bank-note", "test.csv")
+    #train_file = os.path.join("SVM", "bank-note", "train.csv") # for debugging
+    #test_file = os.path.join("SVM", "bank-note", "test.csv")
+
+    # read the data from the file into a list
+    data = read_file(train_file)
+    test_data = read_file(test_file)
+    size = len(data[0])
+
+    # setup init values
+    w = [0] * size # folded b into w
+    r = 0.0001 # learning rate
+    t = 100 # epoch
+    #c = 100/873 # hyperparameter
+    a = 0.0001 # for adjusting the learning rate
+    gaussian_lr = [0.1, 0.5, 1, 5, 100]
+
+    if domain == "primal":
+        # use the algorithm to calc the best weight vector
+        learned_weight = svm(data, w, r, t, c, a, schedule)
+    else:
+        if kernel == "linear":
+            learned_weight = svm_dual(data, w, c, -1)
+        else:
+            for lr in gaussian_lr:
+                print("gaussian learning rate:", lr)
+                learned_weight = svm_dual(data, w, c, lr)
+
+                print("learned weight vector:", [round(num, 3) for num in learned_weight])
+                print_errors(learned_weight, data, test_data)
+            return
+
+
+    print("learned weight vector:", [round(num, 3) for num in learned_weight])
+
+    print_errors(learned_weight, data, test_data)
 
 
 if __name__ == "__main__":
