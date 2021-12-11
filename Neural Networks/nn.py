@@ -64,8 +64,8 @@ def forward_pass(x, weights, num_of_layers, nn_width, input_width, question):
             z = sigmoid(dot(input, node_weight))
             z_values[layer].append(z)
 
-    if question == "bp":   
-        print("z_values: ", z_values)
+    #if question == "bp":   
+    #    print("z_values: ", z_values)
 
     # y value/prediction (last calc)
     prev_layer = num_of_layers - 1
@@ -76,8 +76,8 @@ def forward_pass(x, weights, num_of_layers, nn_width, input_width, question):
         node_weight.append(weights[index][weight_value])
     
     y = dot(input, node_weight)
-    if question == "bp": 
-        print("y: ", y)
+    #if question == "bp": 
+    #    print("y: ", y)
 
     return z_values, y
 
@@ -141,10 +141,10 @@ def back_propagation(x, weights, label, nn_width, input_width, question):
                         sum += partial_l_y * partial_y_z * partial_z_z * partial_z_w
                     partial_derivatives.append(sum)
 
-        if question == "bp": 
-            print("partial derivatives: ", partial_derivatives)
-        
-        return partial_derivatives
+    #if question == "bp": 
+    #    print("partial derivatives: ", partial_derivatives)
+    
+    return partial_derivatives
 
 # neural network algorithm using stochastic gradient descent
 def nn(data, w, lr, t, a, nn_width, input_width, question):
@@ -245,7 +245,6 @@ def gaussian_distrib(x):
     return ( 1 / (math.sqrt(2 * math.pi) ) ) * ( math.e ** ( (-1/2) * x**2 ) )
 
 def main():
-    # determine whether to call the primal or dual domain svm algorithm
     question = "bp" if len(sys.argv) <= 1 else sys.argv[1]
 
     # what each index represents
@@ -288,49 +287,56 @@ def main():
         label = 1
         nn_width = 2
         input_width = len(x)
-        back_propagation(x, weights, label, nn_width, input_width, question)
-    
+        partial_derivatives = back_propagation(x, weights, label, nn_width, input_width, question)
+        print("partial_derivatives: ", partial_derivatives)
+    else:
 
-    # define the file paths for the training and test data
-    train_file = os.path.join("bank-note", "train.csv")
-    test_file = os.path.join("bank-note", "test.csv")
+        # define the file paths for the training and test data
+        train_file = os.path.join("bank-note", "train.csv")
+        test_file = os.path.join("bank-note", "test.csv")
 
-    # read the data from the file into a list
-    data = read_file(train_file)
-    test_data = read_file(test_file)
+        # read the data from the file into a list
+        data = read_file(train_file)
+        test_data = read_file(test_file)
 
-    # setup init values
-    r = 0.001 # learning rate
-    t = 100 # epoch
-    a = 0.001 # for adjusting the learning rate
-    
+        # setup init values
+        r = 0.001 # learning rate
+        t = 100 # epoch
+        a = 0.001 # for adjusting the learning rate
+        
+        num_of_layers = 3 
+        nn_width = 2
+        input_width = len(data[0])
 
-    num_of_layers = 3 
-    nn_width = 2
-    input_width = len(data[0])
+        if question[-1] == "0":
+            print("initializing weights with 0")
 
-    # init edge weights based on standard gaussian distribution
-    weights = []
-    num_of_weights = input_width * nn_width * (num_of_layers - 1)
-    for i in range(num_of_weights):
-        layer = int(i / (input_width * nn_width))
-        node_from = int(i/2) % input_width
-        node_to = i % nn_width + 1
-        weight_value = gaussian_distrib(random.uniform(0, 1))
-        weights.append([layer, node_from, node_to, weight_value])
-    for i in range(input_width):
-        layer = 3
-        node_from = i
-        node_to = 1
-        weight_value = gaussian_distrib(random.uniform(0, 1))
-        weights.append([layer, node_from, node_to, weight_value])
+        for nn_width in [5, 10, 25, 50, 100]:
+            print("width: ", nn_width)
+            nn_width = 2
 
-    # use the algorithm to calc the best weight vector
-    learned_weight = nn(data, weights, r, t, a, nn_width, input_width, question)
-    learned_weight_values = list(x[3] for x in learned_weight)
-    print("learned weight vector:", [round(num, 3) for num in learned_weight_values])
-    
-    print_errors(learned_weight, data, test_data, num_of_layers, nn_width, input_width, question)
+            # init edge weights based on standard gaussian distribution
+            weights = []
+            num_of_weights = input_width * nn_width * (num_of_layers - 1)
+            for i in range(num_of_weights):
+                layer = int(i / (input_width * nn_width))
+                node_from = int(i/2) % input_width
+                node_to = i % nn_width + 1
+                weight_value = 0 if question[-1] == "0" else gaussian_distrib(random.uniform(0, 1))
+                weights.append([layer, node_from, node_to, weight_value])
+            for i in range(input_width):
+                layer = 3
+                node_from = i
+                node_to = 1
+                weight_value = 0 if question[-1] == "0" else gaussian_distrib(random.uniform(0, 1))
+                weights.append([layer, node_from, node_to, weight_value])
+
+            # use the algorithm to calc the best weight vector
+            learned_weight = nn(data, weights, r, t, a, nn_width, input_width, question)
+            learned_weight_values = list(x[3] for x in learned_weight)
+            print("learned weight vector:", [round(num, 3) for num in learned_weight_values])
+            
+            print_errors(learned_weight, data, test_data, num_of_layers, nn_width, input_width, question)
 
 
 

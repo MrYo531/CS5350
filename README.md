@@ -34,3 +34,11 @@ For the SVM algorithm, the script takes 4 parameters:
 - The second is the schedule version, which determines which equation to dynamically change the learning rate (0 or 1)
 - The third is the whether to run the "primal" or "dual" version of SVM
 - The fourth is whether to use a "linear" or "gaussian" kernal
+
+Update:
+
+For the NN algorithm, the script takes 1 parameters:
+- Type 'bp' to see the results for the backpropagation algorithm tested on the example data given by the assignment
+- Type 'sgd' to see the results for the stochastic gradient descent algorithm that uses backpropagation to calcualte the weight gradients
+- Type 'sgd-0' to see a variation where the initial weights are all 0, instead of based on the gaussian distribution.
+
