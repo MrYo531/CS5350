@@ -37,8 +37,13 @@ For the SVM algorithm, the script takes 4 parameters:
 
 Update:
 
-For the NN algorithm, the script takes 1 parameters:
+For the NN algorithm, the script takes 1 parameter:
 - Type 'bp' to see the results for the backpropagation algorithm tested on the example data given by the assignment
 - Type 'sgd' to see the results for the stochastic gradient descent algorithm that uses backpropagation to calcualte the weight gradients
 - Type 'sgd-0' to see a variation where the initial weights are all 0, instead of based on the gaussian distribution.
+
+Update:
+
+For the logistic regression algorithm, the script takes 1 parameter:
+- Type 'map' to use the map estimation, and 'ml' to the maximum likelihood estimation.
 
